@@ -46,7 +46,7 @@ public class ChessBoardGuiImpl implements ChessBoardGui {
 		Font font = new Font("Arial", Font.PLAIN, 30);
 		for(int i = 1; i <= n; i++) {
 			for(int j = 1; j <= n; j++) {
-				Button btn = new Button("Q");
+				Button btn = new Button();
 				btn.setFont(font);
 				btn.setEnabled(false);
 				labelMap.put(getPositionKey(i,j), btn);

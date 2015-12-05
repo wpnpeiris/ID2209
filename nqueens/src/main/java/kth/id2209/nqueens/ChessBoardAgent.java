@@ -6,6 +6,13 @@ package kth.id2209.nqueens;
 import java.util.logging.Logger;
 
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
@@ -22,7 +29,7 @@ public class ChessBoardAgent extends Agent {
 	private static final int DEFAULT_SIZE = 4;
 	
 	protected void setup() {
-		log.info("Initialize Artist Agent");
+		log.info("Initialize ChessBoard Agent");
 		Object[] args = getArguments();
 		int nQueens;
 		if (args != null && args.length > 0) {
@@ -31,10 +38,36 @@ public class ChessBoardAgent extends Agent {
 			nQueens = DEFAULT_SIZE;
 		}
 		
+		register();
+		displayUI(nQueens);
+		createQueenAgents(nQueens);
+		
+		addBehaviour(new ChessBoardBehavior());
+		start();
+	}
+	
+	private void register() {
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("Publish-chessboard"); 
+		sd.setName("Chessboard");
+		dfd.addServices(sd);
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException e) {
+			log.severe(e.getMessage());
+		}
+	}
+	
+	private void displayUI(int nQueens) {
+		log.info("Display ChessBoard GUI with dimension " + nQueens);
 		gui = new ChessBoardGuiImpl();
 		gui.setAgent(this);
 		gui.show(nQueens);
-		
+	}
+	
+	private void createQueenAgents(int nQueens) {
 		log.info("Create number of " + nQueens + " Queen Agents");
 		ContainerController containerController = getContainerController();
 		try {
@@ -44,6 +77,52 @@ public class ChessBoardAgent extends Agent {
 		} catch (StaleProxyException e) {
 			log.severe(e.getMessage());
 		}
-//		gui.update(2, 1, false);
 	}
+	
+	private void start() {
+		log.info("Start game by informing Queen1 to start moving");
+		DFAgentDescription template = new DFAgentDescription(); 
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("Publish-queen");
+		template.addServices(sd);
+
+		try {
+			DFAgentDescription[] result = DFService.search(this, template);
+			if(result != null && result.length > 0) {
+				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+				for (int i = 0; i < result.length; ++i) {
+					if(result[i].getName().getLocalName().equals("Queen1")) {
+						msg.addReceiver(result[i].getName());
+					}
+				}
+				
+				msg.setContent(ChessCommand.MOVE);
+//				msg.setProtocol(ChessCommand.MOVE);
+				send(msg);
+			} else {
+				log.severe("Queen1 is not registred or not available");
+			}
+		} catch (FIPAException e) {
+			log.severe(e.getMessage());
+		}
+	}
+	
+	private class ChessBoardBehavior extends CyclicBehaviour {
+		private MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+		
+		@Override
+		public void action() {
+			final ACLMessage msg = myAgent.receive(mt);
+			if (msg != null) {
+				log.info("Receive ChessBoard update request: " + msg.getContent());
+				String[] parsedMsg = msg.getContent().split(",");
+				int row = Integer.valueOf(parsedMsg[0]);
+				int col = Integer.valueOf(parsedMsg[1]);
+				gui.update(row, col, true);
+			}
+			
+		}
+		
+	}
+	
 }
