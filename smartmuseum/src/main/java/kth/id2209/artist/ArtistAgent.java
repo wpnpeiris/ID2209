@@ -11,6 +11,7 @@ import org.json.simple.JSONObject;
 
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.ContainerID;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
@@ -34,7 +35,7 @@ public class ArtistAgent extends Agent {
 	
 	private static final Logger log = Logger.getLogger(ArtistAgent.class.getName());
 
-	private ArtistGui gui;
+	private transient ArtistGui gui;
 	
 	private List<AID> curators = new ArrayList<AID>();
 
@@ -65,6 +66,22 @@ public class ArtistAgent extends Agent {
 		registerCurators();
 	}
 
+	protected void beforeClone() {
+		log.info(getLocalName() + " is cloning");
+	}
+
+	protected void afterClone() {
+		log.info(getLocalName() + " is cloned");
+		initGui();
+		afterMove();
+	}
+		
+	protected void afterMove() {
+		log.info(getLocalName() + " is arrived to this location.");
+		setContainerName();
+		registerCurators();
+	}
+	
 	protected void takeDown() {
 
 	}
@@ -92,6 +109,20 @@ public class ArtistAgent extends Agent {
 		log.info("Start Auction, Start Price: " + startPrice + " Reserved Price: " + reservePrice );
 		DutchAuction aution = new DutchAuction(id, name, type, startPrice, reservePrice, curators);
 		addBehaviour(aution);
+	}
+	
+	public void cloneArtist(String containerName, String curatorName) {
+		log.info("Clone Artist with name: " + curatorName + " in container: " + containerName);
+		ContainerID destination = new ContainerID();
+		destination.setName(containerName);
+		doClone(destination, curatorName);
+	}
+	
+	public void moveArtist(String containerName) {
+		log.info("Move Artist in container: " + containerName);
+		ContainerID destination = new ContainerID();
+		destination.setName(containerName);
+		doMove(destination);
 	}
 
 	private class DutchAuction extends FSMBehaviour {
