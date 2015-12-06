@@ -125,16 +125,20 @@ public class ChessBoardAgent extends Agent {
 			if (msg != null) {
 				log.info("Receive ChessBoard update request: " + msg.getContent());
 				String[] parsedMsg = msg.getContent().split(",");
-				int row = Integer.valueOf(parsedMsg[0]);
-				int col = Integer.valueOf(parsedMsg[1]);
-				gui.update(row, col, true);
+				boolean update = Boolean.valueOf(parsedMsg[0]);
+				int row = Integer.valueOf(parsedMsg[1]);
+				int col = Integer.valueOf(parsedMsg[2]);
+				gui.update(row, col, update);
 				
-				final String nextQueenToStart = "Queen" + (col + 1);
-				addBehaviour(new WakerBehaviour(myAgent, 2000) {
-					protected void onWake() {
-						proposeMove(nextQueenToStart);
-					}
-				});
+				if(update) {
+					final String nextQueenToStart = "Queen" + (col + 1);
+					addBehaviour(new WakerBehaviour(myAgent, 2000) {
+						protected void onWake() {
+							proposeMove(nextQueenToStart);
+						}
+					});
+				}
+				
 				
 			}
 		}

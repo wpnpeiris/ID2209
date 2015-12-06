@@ -105,6 +105,11 @@ public class XQueen extends Agent {
 						}
 						reply.setPerformative(ACLMessage.INFORM);
 						myAgent.send(reply);
+					} else if(msg.getContent().equals(ChessCommand.RESET)) {
+						log.info("[" + queenName + "] Receive " + msg.getContent());
+						updateChessBoardAgent(false);
+						currentRow = 0;
+						
 					}
 					
 				} else {
@@ -127,7 +132,7 @@ public class XQueen extends Agent {
 					if(heardFromAll) {
 						if(allSaidYes) {
 							log.info("[" +queenName + "] heard YES from all peer queens ");
-							updateChessBoardAgent();
+							updateChessBoardAgent(true);
 							
 							mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
 							state = WAIT;
@@ -151,11 +156,78 @@ public class XQueen extends Agent {
 			
 		}
 		
+		private boolean needReset(String queenName) {
+			boolean needReset = true;
+			if(queenName.equals("Queen1")) {
+				needReset = false;
+			} else {
+				int id = Integer.valueOf(queenName.substring(5));
+				needReset = (id < queenId);
+			}
+			return needReset;
+		}
+		
+		private void proposeMove(String queenName) {
+			DFAgentDescription template = new DFAgentDescription(); 
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType("Publish-queen");
+			template.addServices(sd);
+			
+			try {
+				DFAgentDescription[] result = DFService.search(myAgent, template);
+				if(result != null && result.length > 0) {
+					ACLMessage msg = new ACLMessage(ACLMessage.PROPOSE);
+					for (int i = 0; i < result.length; ++i) {
+						if(result[i].getName().getLocalName().equals(queenName)) {
+							msg.addReceiver(result[i].getName());
+						}
+					}
+				
+					msg.setContent(ChessCommand.MOVE);
+					send(msg);
+					
+				} else {
+					log.severe(queenName + " is not registred or not available");
+				}
+				
+			} catch (FIPAException e) {
+				log.severe(e.getMessage());
+			}
+		}
+		
 		private void moveNextAndPropose() {
 			currentRow = currentRow + 1;
 			
 			if(currentRow > numQueens) {
-				log.info("XXXXXXXXXXXXXXXXXXXXXX ");
+				log.info("[" +queenName + "] Reset ");
+				mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+				state = WAIT;
+				currentRow = 0;
+				
+				log.info("[" +queenName + "] inform others to reset, except Queen1 ");
+				DFAgentDescription template = new DFAgentDescription(); 
+				ServiceDescription sd = new ServiceDescription();
+				sd.setType("Publish-queen");
+				template.addServices(sd);
+				try {
+					DFAgentDescription[] result = DFService.search(myAgent, template);
+					if(result != null && result.length > 0) {
+						ACLMessage inform = new ACLMessage(ACLMessage.PROPOSE);
+						for (int i = 0; i < result.length; ++i) {
+							if(needReset(result[i].getName().getLocalName())) {
+								inform.addReceiver(result[i].getName());
+							}
+						}
+						
+						inform.setContent(ChessCommand.RESET);
+						myAgent.send(inform);
+					}
+				} catch (FIPAException e) {
+					e.printStackTrace();
+				}
+				
+				log.info("[" +queenName + "] inform Queen1 to move ");
+				proposeMove("Queen1");
 				
 			} else {
 
@@ -184,7 +256,7 @@ public class XQueen extends Agent {
 			}
 		}
 		
-		private void updateChessBoardAgent() {
+		private void updateChessBoardAgent(boolean status) {
 			log.info("[" +queenName + "] Update ChessBoard Agent about current possition");
 			DFAgentDescription template = new DFAgentDescription();
 			ServiceDescription sd = new ServiceDescription();
@@ -195,7 +267,7 @@ public class XQueen extends Agent {
 				if (result != null && result.length > 0) {
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 					msg.addReceiver(result[0].getName());
-					msg.setContent(currentRow + "," + queenId);
+					msg.setContent(status + "," + currentRow + "," + queenId);
 					send(msg);
 				}
 			} catch (FIPAException e) {
