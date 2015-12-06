@@ -119,8 +119,7 @@ public class ChessBoardAgent extends Agent {
 	
 	private class ChessBoardBehavior extends CyclicBehaviour {
 		private MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-		boolean check = true;
-		@Override
+		
 		public void action() {
 			final ACLMessage msg = myAgent.receive(mt);
 			if (msg != null) {
@@ -130,13 +129,10 @@ public class ChessBoardAgent extends Agent {
 				int col = Integer.valueOf(parsedMsg[1]);
 				gui.update(row, col, true);
 				
+				final String nextQueenToStart = "Queen" + (col + 1);
 				addBehaviour(new WakerBehaviour(myAgent, 2000) {
 					protected void onWake() {
-						if(check) {
-							proposeMove("Queen2");
-							check = false;
-						}
-						
+						proposeMove(nextQueenToStart);
 					}
 				});
 				
