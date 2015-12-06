@@ -12,13 +12,18 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import jade.core.Agent;
+import jade.content.lang.sl.SLCodec;
+import jade.core.ContainerID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
+import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.mobility.MobilityOntology;
+import jade.gui.GuiAgent;
+import jade.gui.GuiEvent;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
@@ -26,16 +31,20 @@ import jade.lang.acl.MessageTemplate;
  * @author pradeeppeiris
  *
  */
-public class CuratorAgent extends Agent {
+public class CuratorAgent extends GuiAgent {
 
 	private static final Logger log = Logger.getLogger(CuratorAgent.class.getName());
 	
 	private Map<String, Artifact> artifacts = new HashMap<String, Artifact> ();
 	
-	private CuratorGui gui;
+	transient private CuratorGui gui;
 	
 	protected void setup() {
 		log.info("Initailize Curator Agent");
+		getContentManager().registerLanguage(new SLCodec(), FIPANames.ContentLanguage.FIPA_SL0);
+		getContentManager().registerOntology(MobilityOntology.getInstance());
+
+		  
 		gui = new CuratorGuiImpl();
 		gui.setAgent(this);
 		gui.show();
@@ -58,7 +67,55 @@ public class CuratorAgent extends Agent {
 		addBehaviour(new AuctionItemListener());
 		addBehaviour(new AuctionPriceListener());
 		addBehaviour(new AuctionResultListener());
+//		addBehaviour(new LocationBehavior(this));
 		
+		String containerName = "Container-1";
+		ContainerID destination = new ContainerID();
+		destination.setName(containerName);
+		doClone(destination, "Clont-of-" + getLocalName());
+		
+		
+		
+//		AID remoteAMS = new AID("ams@192.168.0.102:1099/JADE", AID.ISGUID);
+//		remoteAMS.addAddresses("http://192.168.0.102:7778/acc");
+//		PlatformID destination = new PlatformID(remoteAMS);
+//		doMove(destination);
+		
+	}
+	
+	protected void beforeClone() {
+		System.out.println(getLocalName() + " is now cloning itself.");
+	}
+
+	protected void afterClone() {
+		System.out.println(getLocalName() + " has cloned itself.");
+		afterMove();
+	}
+		
+	protected void afterMove() {
+		System.out.println(getLocalName()+" is just arrived to this location.");
+		gui = new CuratorGuiImpl();
+		gui.setAgent(this);
+		gui.show();
+		
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("Publish-curator"); 
+		sd.setName(getLocalName()+"-Publish-curator"); 
+		dfd.addServices(sd);
+		
+		try {
+			log.info("Register Profiler Agent");
+			DFService.register(this, dfd);
+		} catch (FIPAException e) {
+			log.severe("Error in Profile Agent register: " + e.getMessage());
+		}
+		
+		addBehaviour(new ArtifactRequest());
+		addBehaviour(new AuctionItemListener());
+		addBehaviour(new AuctionPriceListener());
+		addBehaviour(new AuctionResultListener());
 	}
 	
 	public void updateArtifacts(String id, String name, String creator, 
@@ -72,6 +129,67 @@ public class CuratorAgent extends Agent {
 //	
 //	public void rejectOffer() {
 //		log.info("Reject Offer");
+//		
+//	}
+	
+//	private class LocationBehavior extends SimpleAchieveREInitiator {
+//		ACLMessage request;
+//		public LocationBehavior(CuratorAgent a) {
+//			super(a, new ACLMessage(ACLMessage.REQUEST));
+//			request = (ACLMessage)getDataStore().get(REQUEST_KEY);
+//		     // fills all parameters of the request ACLMessage
+//		     request.clearAllReceiver();
+//		     request.addReceiver(a.getAMS());
+//		     request.setLanguage(FIPANames.ContentLanguage.FIPA_SL0);
+//		     request.setOntology(MobilityOntology.NAME);
+//		     request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+//		     
+//		     	Action action = new Action();
+//		       action.setActor(a.getAMS());
+//		       action.setAction(new QueryPlatformLocationsAction());
+//		       try {
+//				a.getContentManager().fillContent(request, action);
+//			} catch (Exception e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		       
+//		       reset(request);
+//		}
+//		
+//		protected void handleNotUnderstood(ACLMessage reply) {
+//			System.out.println(myAgent.getLocalName() + " handleNotUnderstood : " + reply.toString());
+//		}
+//
+//		protected void handleRefuse(ACLMessage reply) {
+//			System.out.println(myAgent.getLocalName() + " handleRefuse : " + reply.toString());
+//		}
+//
+//		protected void handleFailure(ACLMessage reply) {
+//			System.out.println(myAgent.getLocalName() + " handleFailure : " + reply.toString());
+//		}
+//
+//		protected void handleAgree(ACLMessage reply) {
+//		}
+//
+//		protected void handleInform(ACLMessage inform) {
+//			String content = inform.getContent();
+//			System.out.println("XXXXXXXXXXXXX " + inform.toString());
+//			try {
+//				Result results = (Result) myAgent.getContentManager().extractContent(inform);
+//				Iterator list = results.getItems().iterator();
+//				for ( ; list.hasNext(); ) {
+//					Object obj = list.next();
+////			    	System.out.println(">>>>>>>>>>>> " + obj);
+//			    }
+//
+//				
+////				// update the GUI
+////				((MobileAgent) myAgent).gui.updateLocations(results.getItems().iterator());
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		}
 //		
 //	}
 	
@@ -221,6 +339,12 @@ public class CuratorAgent extends Agent {
 		public JSONObject getAttributes() {
 			return this.attributes;
 		}
+		
+	}
+
+	@Override
+	protected void onGuiEvent(GuiEvent event) {
+		log.info("XXXXXXXXXX " + event);
 		
 	}
 	

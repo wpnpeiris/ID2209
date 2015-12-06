@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -81,27 +82,36 @@ public class ChessBoardAgent extends Agent {
 	
 	private void start() {
 		log.info("Start game by informing Queen1 to start moving");
+		addBehaviour(new WakerBehaviour(this, 5000) {
+			protected void onWake() {
+				proposeMove("Queen1");
+			}
+		});
+	}
+	
+	private void proposeMove(String queenName) {
 		DFAgentDescription template = new DFAgentDescription(); 
 		ServiceDescription sd = new ServiceDescription();
 		sd.setType("Publish-queen");
 		template.addServices(sd);
-
+		
 		try {
 			DFAgentDescription[] result = DFService.search(this, template);
 			if(result != null && result.length > 0) {
-				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+				ACLMessage msg = new ACLMessage(ACLMessage.CFP);
 				for (int i = 0; i < result.length; ++i) {
-					if(result[i].getName().getLocalName().equals("Queen1")) {
+					if(result[i].getName().getLocalName().equals(queenName)) {
 						msg.addReceiver(result[i].getName());
 					}
 				}
-				
+			
 				msg.setContent(ChessCommand.MOVE);
-//				msg.setProtocol(ChessCommand.MOVE);
 				send(msg);
+				
 			} else {
 				log.severe("Queen1 is not registred or not available");
 			}
+			
 		} catch (FIPAException e) {
 			log.severe(e.getMessage());
 		}
@@ -119,10 +129,18 @@ public class ChessBoardAgent extends Agent {
 				int row = Integer.valueOf(parsedMsg[0]);
 				int col = Integer.valueOf(parsedMsg[1]);
 				gui.update(row, col, true);
+				
+				addBehaviour(new WakerBehaviour(myAgent, 5000) {
+					protected void onWake() {
+						proposeMove("Queen2");
+					}
+				});
+				
 			}
-			
 		}
 		
 	}
+	
+	
 	
 }
