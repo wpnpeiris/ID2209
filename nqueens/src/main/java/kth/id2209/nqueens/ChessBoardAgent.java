@@ -73,7 +73,7 @@ public class ChessBoardAgent extends Agent {
 		ContainerController containerController = getContainerController();
 		try {
 			for (int i = 1; i <= nQueens; i++) {
-				containerController.createNewAgent("Queen" + i, Queen.class.getName(), new Object[]{i}).start();
+				containerController.createNewAgent("Queen" + i, XQueen.class.getName(), new Object[]{i, nQueens}).start();
 			}
 		} catch (StaleProxyException e) {
 			log.severe(e.getMessage());
@@ -82,7 +82,7 @@ public class ChessBoardAgent extends Agent {
 	
 	private void start() {
 		log.info("Start game by informing Queen1 to start moving");
-		addBehaviour(new WakerBehaviour(this, 5000) {
+		addBehaviour(new WakerBehaviour(this, 2000) {
 			protected void onWake() {
 				proposeMove("Queen1");
 			}
@@ -98,7 +98,7 @@ public class ChessBoardAgent extends Agent {
 		try {
 			DFAgentDescription[] result = DFService.search(this, template);
 			if(result != null && result.length > 0) {
-				ACLMessage msg = new ACLMessage(ACLMessage.CFP);
+				ACLMessage msg = new ACLMessage(ACLMessage.PROPOSE);
 				for (int i = 0; i < result.length; ++i) {
 					if(result[i].getName().getLocalName().equals(queenName)) {
 						msg.addReceiver(result[i].getName());
@@ -119,7 +119,7 @@ public class ChessBoardAgent extends Agent {
 	
 	private class ChessBoardBehavior extends CyclicBehaviour {
 		private MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-		
+		boolean check = true;
 		@Override
 		public void action() {
 			final ACLMessage msg = myAgent.receive(mt);
@@ -130,9 +130,13 @@ public class ChessBoardAgent extends Agent {
 				int col = Integer.valueOf(parsedMsg[1]);
 				gui.update(row, col, true);
 				
-				addBehaviour(new WakerBehaviour(myAgent, 5000) {
+				addBehaviour(new WakerBehaviour(myAgent, 2000) {
 					protected void onWake() {
-						proposeMove("Queen2");
+						if(check) {
+							proposeMove("Queen2");
+							check = false;
+						}
+						
 					}
 				});
 				
