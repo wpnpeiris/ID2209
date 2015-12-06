@@ -21,6 +21,8 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.util.leap.Properties;
+import kth.id2209.curator.CuratorGuiImpl;
 
 /**
  * @author pradeeppeiris
@@ -28,18 +30,38 @@ import jade.lang.acl.MessageTemplate;
  */
 public class ArtistAgent extends Agent {
 
+	private final String DEFAULT_CONTAINER = "default";
+	
 	private static final Logger log = Logger.getLogger(ArtistAgent.class.getName());
 
 	private ArtistGui gui;
 	
 	private List<AID> curators = new ArrayList<AID>();
 
-	protected void setup() {
-		log.info("Initialize Artist Agent");
+	private String containerName;
+	
+	private void initGui() {
+		log.info("Initailize Artist Agent's GUI");
 		gui = new ArtistGuiImpl();
 		gui.setAgent(this);
 		gui.show();
-		
+	}
+	
+	private void setContainerName() {
+		log.info("Set container name");
+		Properties prop = getBootProperties();
+		String contName = prop.getProperty("container-name");
+		if(contName != null) {
+			containerName = contName;
+		} else {
+			containerName = DEFAULT_CONTAINER;
+		}
+	}
+	
+	protected void setup() {
+		log.info("Initialize Artist Agent");
+		initGui();
+		setContainerName();
 		registerCurators();
 	}
 
@@ -52,6 +74,7 @@ public class ArtistAgent extends Agent {
 		DFAgentDescription template = new DFAgentDescription(); 
 		ServiceDescription sd = new ServiceDescription();
 		sd.setType("Publish-curator");
+		sd.setOwnership(containerName);
 		template.addServices(sd);
 		try {
 			DFAgentDescription[] result = DFService.search(this, template);

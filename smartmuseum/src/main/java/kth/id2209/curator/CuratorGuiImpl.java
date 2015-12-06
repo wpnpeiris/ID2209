@@ -172,6 +172,35 @@ public class CuratorGuiImpl implements CuratorGui {
 		});
 		
 		
+		Panel clonePanel1 = new Panel();
+		clonePanel1.setLayout(new GridLayout(1,2));
+		Label containerLbt = new Label("  Curator Container Name");
+		clonePanel1.add(containerLbt);
+		final TextField containerName = new TextField();
+		clonePanel1.add(containerName);
+		mainFrame.add(clonePanel1);
+		
+		Panel clonePanel2 = new Panel();
+		clonePanel2.setLayout(new GridLayout(1,2));
+		Label cloneLbl = new Label("  Curator Clone Name");
+		clonePanel2.add(cloneLbl);
+		final TextField cloneName = new TextField();
+		clonePanel2.add(cloneName);
+		mainFrame.add(clonePanel2);
+		
+		Panel clonePanel3 = new Panel();
+		clonePanel3.setLayout(new GridLayout(1,1));
+		Button cloneBtn = new Button("Clone");
+		clonePanel3.add(cloneBtn);
+		mainFrame.add(clonePanel3);
+		cloneBtn.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				agent.cloneCurator(containerName.getText(), cloneName.getText());
+			}
+			
+		});
 		
 		mainFrame.setVisible(true);
 	}
