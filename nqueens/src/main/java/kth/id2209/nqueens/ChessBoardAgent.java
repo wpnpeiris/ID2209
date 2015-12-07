@@ -29,6 +29,10 @@ public class ChessBoardAgent extends Agent {
 	
 	private static final int DEFAULT_SIZE = 4;
 	
+	private final int SLEEP_TIME = 200;
+	
+	private final String START_QUEEN = "Queen1";
+	
 	protected void setup() {
 		log.info("Initialize ChessBoard Agent");
 		Object[] args = getArguments();
@@ -81,10 +85,10 @@ public class ChessBoardAgent extends Agent {
 	}
 	
 	private void start() {
-		log.info("Start game by informing Queen1 to start moving");
-		addBehaviour(new WakerBehaviour(this, 2000) {
+		log.info("Start game by informing " + START_QUEEN + " to start moving");
+		addBehaviour(new WakerBehaviour(this, SLEEP_TIME) {
 			protected void onWake() {
-				proposeMove("Queen1");
+				proposeMove(START_QUEEN);
 			}
 		});
 	}
@@ -109,7 +113,7 @@ public class ChessBoardAgent extends Agent {
 				send(msg);
 				
 			} else {
-				log.severe("Queen1 is not registred or not available");
+				log.severe("Queen is not registred or not available");
 			}
 			
 		} catch (FIPAException e) {
@@ -132,7 +136,7 @@ public class ChessBoardAgent extends Agent {
 				
 				if(update) {
 					final String nextQueenToStart = "Queen" + (col + 1);
-					addBehaviour(new WakerBehaviour(myAgent, 2000) {
+					addBehaviour(new WakerBehaviour(myAgent, SLEEP_TIME) {
 						protected void onWake() {
 							proposeMove(nextQueenToStart);
 						}

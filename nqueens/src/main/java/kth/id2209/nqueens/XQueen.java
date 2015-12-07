@@ -72,10 +72,9 @@ public class XQueen extends Agent {
 		boolean allSaidYes = true;
 		@Override
 		public void action() {
-//			log.info("[" +queenName + "] QueensStateBehaviour state: " + state);
 			switch (state) {
 			case INIT:
-//				log.info("[" +queenName + "] QueensStateBehaviour process state init" + state);
+				log.info("[" +queenName + "] QueensStateBehaviour process state init" + state);
 				myAgent.addBehaviour(new QueenInit());
 				mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
 				state = WAIT;
@@ -88,10 +87,10 @@ public class XQueen extends Agent {
 					log.info("[" +queenName + "] Receive Inform " + msg.getContent());
 					if(msg.getContent().equals(ChessCommand.MOVE)) {
 						
+						if(currentRow != 0) {
+							updateChessBoardAgent(false);
+						}
 						moveNextAndPropose();
-
-						mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
-						state = CHECK_REPLY;
 						
 					} else if(msg.getContent().contains(ChessCommand.CHECK)) {
 						log.info("[" + queenName + "] Receive Inform " + msg.getContent());
@@ -156,16 +155,16 @@ public class XQueen extends Agent {
 			
 		}
 		
-		private boolean needReset(String queenName) {
-			boolean needReset = true;
-			if(queenName.equals("Queen1")) {
-				needReset = false;
-			} else {
-				int id = Integer.valueOf(queenName.substring(5));
-				needReset = (id < queenId);
-			}
-			return needReset;
-		}
+//		private boolean needReset(String queenName) {
+//			boolean needReset = true;
+//			if(queenName.equals("Queen1")) {
+//				needReset = false;
+//			} else {
+//				int id = Integer.valueOf(queenName.substring(5));
+//				needReset = (id < queenId);
+//			}
+//			return needReset;
+//		}
 		
 		private void proposeMove(String queenName) {
 			DFAgentDescription template = new DFAgentDescription(); 
@@ -195,42 +194,52 @@ public class XQueen extends Agent {
 			}
 		}
 		
+//		private void proposeReset() {
+//			mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+//			state = WAIT;
+//			currentRow = 0;
+//			
+//			log.info("[" +queenName + "] inform others to reset, except Queen1 ");
+//			DFAgentDescription template = new DFAgentDescription(); 
+//			ServiceDescription sd = new ServiceDescription();
+//			sd.setType("Publish-queen");
+//			template.addServices(sd);
+//			try {
+//				DFAgentDescription[] result = DFService.search(myAgent, template);
+//				if(result != null && result.length > 0) {
+//					ACLMessage inform = new ACLMessage(ACLMessage.PROPOSE);
+//					for (int i = 0; i < result.length; ++i) {
+//						if(needReset(result[i].getName().getLocalName())) {
+//							inform.addReceiver(result[i].getName());
+//						}
+//					}
+//					
+//					inform.setContent(ChessCommand.RESET);
+//					myAgent.send(inform);
+//				}
+//			} catch (FIPAException e) {
+//				e.printStackTrace();
+//			}
+//		}
+		
 		private void moveNextAndPropose() {
 			currentRow = currentRow + 1;
 			
 			if(currentRow > numQueens) {
-				log.info("[" +queenName + "] Reset ");
+//				log.info("[" +queenName + "] inform Reset ");
+//				proposeReset();
+
+				log.info("[" +queenName + "] inform previous to continue on move ");
 				mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
 				state = WAIT;
 				currentRow = 0;
-				
-				log.info("[" +queenName + "] inform others to reset, except Queen1 ");
-				DFAgentDescription template = new DFAgentDescription(); 
-				ServiceDescription sd = new ServiceDescription();
-				sd.setType("Publish-queen");
-				template.addServices(sd);
-				try {
-					DFAgentDescription[] result = DFService.search(myAgent, template);
-					if(result != null && result.length > 0) {
-						ACLMessage inform = new ACLMessage(ACLMessage.PROPOSE);
-						for (int i = 0; i < result.length; ++i) {
-							if(needReset(result[i].getName().getLocalName())) {
-								inform.addReceiver(result[i].getName());
-							}
-						}
-						
-						inform.setContent(ChessCommand.RESET);
-						myAgent.send(inform);
-					}
-				} catch (FIPAException e) {
-					e.printStackTrace();
-				}
-				
-				log.info("[" +queenName + "] inform Queen1 to move ");
-				proposeMove("Queen1");
+				int previousQueenId = queenId - 1;
+				proposeMove("Queen" + previousQueenId);
 				
 			} else {
-
+				mt = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+				state = CHECK_REPLY;
+				
 				DFAgentDescription template = new DFAgentDescription(); 
 				ServiceDescription sd = new ServiceDescription();
 				sd.setType("Publish-queen");
@@ -311,7 +320,6 @@ public class XQueen extends Agent {
 		
 		@Override
 		public boolean done() {
-			// TODO Auto-generated method stub
 			return false;
 		}
 		
