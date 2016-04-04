@@ -1,2 +1,3 @@
-# ID2209
-Distributed Artificial Intelligence and Intelligent Agents
+# NQueens Problem
+Assignment of Distributed Artificial Intelligence and Intelligent Agents
+
